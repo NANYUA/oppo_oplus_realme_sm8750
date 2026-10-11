@@ -564,7 +564,7 @@ jobs:
           git clone --depth=1 https://github.com/NANYUA/lunarkernel_sched_extention ./common/drivers/staging/lunarkernel_sched_extention
           grep -q 'lunarkernel_sched_extention/Kconfig' ./common/drivers/staging/Kconfig || sed -i '/^endif/i source "drivers/staging/lunarkernel_sched_extention/Kconfig"' ./common/drivers/staging/Kconfig
           grep -q 'lunarkernel_sched_extention/' ./common/drivers/staging/Makefile || echo 'obj-$(CONFIG_LUNAR_SCHED_EXT) += lunarkernel_sched_extention/' >> ./common/drivers/staging/Makefile
-          echo "CONFIG_LUNAR_SCHED_EXT=m" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_LUNAR_SCHED_EXT=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "--- LSE 源码 ---"; ls ./common/drivers/staging/lunarkernel_sched_extention/ 2>/dev/null | head
           grep -n 'lunarkernel_sched_extention' ./common/drivers/staging/Kconfig || true
            
@@ -642,14 +642,9 @@ jobs:
           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error gki_defconfig &&
           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error Image
           
-          echo "=== 构建 LSE 风驰调速器模块 (lunar_bsp_ext_sched.ko) ==="
-          make -j$(nproc --all) -k LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error modules || echo "!! modules 构建有非0返回(可能为无关模块,继续找 LSE .ko)"
-          ls -la out/Module.symvers 2>/dev/null && echo "Module.symvers 已生成" || echo "warn: 仍无 Module.symvers"
-          mkdir -p "$WORKDIR/kernel_workspace/lse_out"
-          find out -name 'lunar_bsp_ext_sched.ko' -exec cp -v {} "$WORKDIR/kernel_workspace/lse_out/" \; 2>/dev/null || true
-          echo "=== LSE .ko 产物 ==="
-          ls -la "$WORKDIR/kernel_workspace/lse_out/" 2>/dev/null || echo "无 .ko 产物"
-          find out -name 'lunar_bsp_ext_sched.ko' 2>/dev/null | head || true
+          echo "=== LSE 以 built-in(=y) 编入内核,无需单独构建 .ko ==="
+          ls -la out/drivers/staging/lunarkernel_sched_extention/*.o 2>/dev/null | head || echo "warn: 未见 LSE 目标文件(built-in 编译可能未发生)"
+          grep -aq "lunar_ext_gov" out/vmlinux 2>/dev/null && echo "vmlinux 内含 lunar_ext_gov ✓(built-in 成功)" || echo "warn: vmlinux 未搜到 lunar_ext_gov"
           # 编译后时间劫持二次校验
           echo "--- 编译后环境时间: $(LD_PRELOAD=$PRELOAD_LIBS date) ---"
           echo "--- 编译后环境文件时间戳: ---"
@@ -691,7 +686,7 @@ jobs:
             echo "未找到内核镜像文件，构建可能出错"
             exit 1
           fi
-          cp "$GITHUB_WORKSPACE/kernel_workspace/lse_out/lunar_bsp_ext_sched.ko" ./lunar_bsp_ext_sched.ko 2>/dev/null && echo "LSE .ko 已打包进 AnyKernel3" || echo "警告: 未找到 LSE .ko,本次产物不含模块"
+          echo "LSE 已 built-in 编入 Image,无需附带 .ko"
           if [[ ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then
             KSU_TYPENAME="SukiSU"
           elif [[ ${{ github.event.inputs.ksu_type }} == "bakasu" ]]; then
