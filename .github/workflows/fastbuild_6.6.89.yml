@@ -563,6 +563,7 @@ jobs:
           echo "===== 集成 LSE(风驰 scx 调速器 / Lunar Scheduling Extension)====="
           git clone --depth=1 https://github.com/NANYUA/lunarkernel_sched_extention ./common/drivers/staging/lunarkernel_sched_extention
           grep -q 'lunarkernel_sched_extention/Kconfig' ./common/drivers/staging/Kconfig || sed -i '/^endif/i source "drivers/staging/lunarkernel_sched_extention/Kconfig"' ./common/drivers/staging/Kconfig
+          grep -q 'lunarkernel_sched_extention/' ./common/drivers/staging/Makefile || echo 'obj-$(CONFIG_LUNAR_SCHED_EXT) += lunarkernel_sched_extention/' >> ./common/drivers/staging/Makefile
           echo "CONFIG_LUNAR_SCHED_EXT=m" >> ./common/arch/arm64/configs/gki_defconfig
           echo "--- LSE 源码 ---"; ls ./common/drivers/staging/lunarkernel_sched_extention/ 2>/dev/null | head
           grep -n 'lunarkernel_sched_extention' ./common/drivers/staging/Kconfig || true
@@ -642,8 +643,8 @@ jobs:
           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error Image
           
           echo "=== 构建 LSE 风驰调速器模块 (lunar_bsp_ext_sched.ko) ==="
-          ls -la out/Module.symvers 2>/dev/null || echo "warn: 未发现 out/Module.symvers"
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error M=drivers/staging/lunarkernel_sched_extention modules || echo "!! LSE 模块构建返回非0(见上方日志)"
+          make -j$(nproc --all) -k LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error modules || echo "!! modules 构建有非0返回(可能为无关模块,继续找 LSE .ko)"
+          ls -la out/Module.symvers 2>/dev/null && echo "Module.symvers 已生成" || echo "warn: 仍无 Module.symvers"
           mkdir -p "$WORKDIR/kernel_workspace/lse_out"
           find out -name 'lunar_bsp_ext_sched.ko' -exec cp -v {} "$WORKDIR/kernel_workspace/lse_out/" \; 2>/dev/null || true
           echo "=== LSE .ko 产物 ==="
