@@ -556,6 +556,10 @@ jobs:
           fi
           sed -i 's/${scm_version}//' ./common/scripts/setlocalversion
           echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "启用风驰hmbird-scx: 强制 HMBIRD_OGKI_VERSION(解除设备树版本门禁)..."
+          sed -i 's/hmbird_version_type = HMBIRD_UNINIT;/hmbird_version_type = HMBIRD_OGKI_VERSION;/' ./common/include/linux/sched/hmbird_version.h
+          echo "CONFIG_HMBIRD_SCHED=y" >> ./common/arch/arm64/configs/gki_defconfig
+          grep -n 'hmbird_version_type =' ./common/include/linux/sched/hmbird_version.h || true
            
       - name: 构建内核
         run: |
