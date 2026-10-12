@@ -293,7 +293,7 @@ jobs:
           cd kernel_workspace
           if [[ ${{ github.event.inputs.ksu_type }} != "none" ]]; then
             echo "正在添加susfs补丁..."
-            git clone --depth=1 https://github.com/cctv18/susfs4oki.git susfs4ksu -b oki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}
+            git clone --depth=1 https://github.com/Zarathos30/susfs4ksu.git susfs4ksu -b gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}-dev
             wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/69_hide_stuff.patch -O ./common/69_hide_stuff.patch
             cp ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch ./common/
             cp ./susfs4ksu/kernel_patches/fs/* ./common/fs/
@@ -302,6 +302,11 @@ jobs:
             patch -p1 -F 3 < 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch || true
             patch -p1 -N -F 3 < 69_hide_stuff.patch || true
             cd ..
+            # BakaSU main 临时用 $(error) 暂停了 susfs 编译(等待 simonpunk 同步);此处已改用已同步 KernelSU main 的 susfs 源,故移除该临时门禁
+            if [ -f ./KernelSU/kernel/tools/susfs_compat.mk ]; then
+              sed -i '/susfs has NOT update/,$d' ./KernelSU/kernel/tools/susfs_compat.mk
+              echo "susfs_compat.mk lines after patch: $(wc -l < ./KernelSU/kernel/tools/susfs_compat.mk)"
+            fi
           else
             echo "已选择无内置KernelSU模式，跳过susfs配置..."
           fi
